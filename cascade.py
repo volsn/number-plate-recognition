@@ -5,6 +5,7 @@ from os.path import isfile, join, exists, realpath
 import sys
 import pytesseract
 import re
+from PIL import Image
 
 
 # Standarts of number plates for different countries
@@ -84,9 +85,9 @@ def split_video_into_frames(file):
 		))
 		file = file.split('\\')[-1]
 
-	comand = 'ffmpeg -i {} input/img%04d.png'.format(join('input', file))
+	comand = 'ffmpeg -i {} input/technical_img%04d.jpg'.format(join('input', file))
 	system(comand)
-	files = [f for f in listdir('input') if isfile(join('input', f)) and f != file]
+	files = [f for f in listdir('input') if re.match('^technical_img', f)]
 	get_plate_num_images(files)
 	
 
@@ -109,7 +110,6 @@ def get_plate_num_images(files, show=False, validation=False, path='input', lite
 
 		if file.endswith('.mp4') or file.endswith('.avi') or file.endswith('.mpeg'):
 			split_video_into_frames(file)
-			return True
 
 		img = cv2.imread(join('input', file))
 
@@ -148,7 +148,6 @@ if __name__ == '__main__':
 	if 'validate' in sys.argv:
 		validation = True
 
-	print(len(sys.argv))
 	if len(sys.argv) > 1:
 		if re.match(r'^[a-zA-Z]:\\[\\\S|*\S]?.*$', sys.argv[1]):
 			get_plate_num_images(sys.argv[1])
