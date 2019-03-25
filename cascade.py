@@ -1,9 +1,10 @@
 import cv2
 import numpy as np
-from os import listdir, makedirs
-from os.path import isfile, join, exists
+from os import listdir, makedirs, system
+from os.path import isfile, join, exists, realpath
 import sys
 import pytesseract
+import re
 
 
 # Standarts of number plates for different countries
@@ -32,7 +33,6 @@ def check_is_plate_valid(plate_number, country='RU'):
 	
 	digits = ''.join([c for c in plate_number if c.isdigit()])
 	letters =  ''.join([c for c in plate_number if c.isalpha()])
-	print(digits, letters)
 
 	if len(digits) >= PLATE_NUMBER_STANDARTS[country]['dig'] and \
 				len(letters) >= PLATE_NUMBER_STANDARTS[country]['chr']:
@@ -68,7 +68,29 @@ def find_plate_number(img_name, validation=False):
 			return 'Not a car plate'
 	return text
 
-def get_plate_num_images(files, show=False, validation=False):
+
+def split_video_into_frames(file):
+	"""
+	Splits the given video into frames
+	:file type: string
+	:rtype: True
+	"""
+
+
+	if re.match(r'^[a-zA-Z]:\\[\\\S|*\S]?.*$', file):
+		system('Xcopy {a_file_to_copy} {path_of_input_folder}'.format(
+			a_file_to_copy=file,
+			path_of_input_folder=realpath(__file__)
+		))
+		file = file.split('\\')[-1]
+
+	comand = 'ffmpeg -i {} input/img%04d.png'.format(join('input', file))
+	system(comand)
+	files = [f for f in listdir('input') if isfile(join('input', f)) and f != file]
+	get_plate_num_images(files)
+	
+
+def get_plate_num_images(files, show=False, validation=False, path='input', lite=False):
 	"""
 	Finds all the potential car plates among given photos
 	:files type: list
@@ -84,6 +106,10 @@ def get_plate_num_images(files, show=False, validation=False):
 
 	result_file_name = 0
 	for file in files:
+
+		if file.endswith('.mp4') or file.endswith('.avi') or file.endswith('.mpeg'):
+			split_video_into_frames(file)
+			return True
 
 		img = cv2.imread(join('input', file))
 
@@ -112,6 +138,7 @@ if __name__ == '__main__':
 		raise NoInputDataError('Data to process should be stored in `input` folder')
 
 	files = [f for f in listdir('input') if isfile(join('input', f))]
+
 	
 	show = False
 	if 'show' in sys.argv:
@@ -121,5 +148,9 @@ if __name__ == '__main__':
 	if 'validate' in sys.argv:
 		validation = True
 
+	print(len(sys.argv))
+	if len(sys.argv) > 1:
+		if re.match(r'^[a-zA-Z]:\\[\\\S|*\S]?.*$', sys.argv[1]):
+			get_plate_num_images(sys.argv[1])
 
 	get_plate_num_images(files, show=show, validation=validation)
