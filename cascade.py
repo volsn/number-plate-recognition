@@ -6,9 +6,6 @@ import sys
 import pytesseract
 import re
 from PIL import Image
-from skimage import measure
-from skimage.transform import resize
-from skimage.measure import regionprops
 
 
 # Standarts of number plates for different countries
