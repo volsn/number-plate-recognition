@@ -6,6 +6,9 @@ import sys
 import pytesseract
 import re
 from PIL import Image
+from skimage import measure
+from skimage.transform import resize
+from skimage.measure import regionprops
 
 
 # Standarts of number plates for different countries
@@ -49,25 +52,26 @@ def find_plate_number(img_name, validation=False):
 	:rtype: string
 	"""
 
-	path = join('result', img_name)
-	img = cv2.imread(path)
-	im_gray = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-
-	(thresh, im_bw) = cv2.threshold(im_gray, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-
-	thresh = 127
-	im_bw = cv2.threshold(im_gray, thresh, 255, cv2.THRESH_BINARY)[1]
-	edges = cv2.Canny(im_bw, 50, 150, apertureSize = 3)
+	image = cv2.imread('result/{}'.format(img_name))
+	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+	gray = cv2.medianBlur(gray, 3)
 
 	config = ('-l rus --oem 1 --psm 6')
-	text = pytesseract.image_to_string(img, config=config)
+	text = pytesseract.image_to_string(gray, config=config)
 
-	if validation:
-		if check_is_plate_valid(text):
-			return text
-		else:
-			return 'Not a car plate'
-	return text
+	text = re.sub(r'[\W_]+', '', text, flags=re.I)
+
+	if any(char.isdigit() for char in text) and any(char.isalpha() for char in text) \
+							and len(text) >= 6:
+
+		with open('car_plate.txt', 'a') as f:
+			f.write(text + '\n')
+
+		return text
+
+	else:
+		return None
+
 
 
 def split_video_into_frames(file):
@@ -119,7 +123,7 @@ def get_plate_num_images(files, show=False, validation=False, path='input', lite
 		for (x,y,w,h) in number_plate:
 			croped_licence_plate = img[y:y+h, x:x+w]
 			cv2.imwrite(join('result', '{}.png'.format(result_file_name)), croped_licence_plate)
-			print(find_plate_number('{}.png'.format(result_file_name), validation=validation))
+			find_plate_number('{}.png'.format(result_file_name), validation=validation)
 			result_file_name += 1
 
 			if show:
