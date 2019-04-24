@@ -111,6 +111,7 @@ def get_plate_num_images(files, show=False, validation=False, path='input', lite
 
 		if file.endswith('.mp4') or file.endswith('.avi') or file.endswith('.mpeg'):
 			split_video_into_frames(file)
+			continue
 
 		img = cv2.imread(join('input', file))
 
